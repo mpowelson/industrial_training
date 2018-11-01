@@ -101,7 +101,7 @@ void TrajoptPickAndPlaceConstructor::addCollisionCost(trajopt::ProblemConstructi
   /* Fill Code:
        . Define the cost name
        . Define the term type (This is a cost)
-       . Define this cost as not continuous
+       . Define this cost as continuous
        . Define the first time step
        . Define the last time step
        . Set the cost gap to be 1
@@ -110,7 +110,7 @@ void TrajoptPickAndPlaceConstructor::addCollisionCost(trajopt::ProblemConstructi
   /* ========  ENTER CODE HERE ======== */
   collision->name = "collision";
   collision->term_type = TT_COST;
-  collision->continuous = false;
+  collision->continuous = true;
   collision->first_step = first_step;
   collision->last_step = last_step;
   collision->gap = 1;
@@ -288,7 +288,7 @@ TrajOptProbPtr TrajoptPickAndPlaceConstructor::generatePlaceProblem(Isometry3d& 
 
   this->addLinearMotion(pci, approach_pose, final_pose, steps_per_phase, steps_per_phase * 2);
 
-  this->addCollisionCost(pci, 0.025, 40, steps_per_phase, steps_per_phase * 2);
+  this->addCollisionCost(pci, 0.025, 40, steps_per_phase-1, steps_per_phase * 2+1);
 
   TrajOptProbPtr result = ConstructProblem(pci);
   return result;
