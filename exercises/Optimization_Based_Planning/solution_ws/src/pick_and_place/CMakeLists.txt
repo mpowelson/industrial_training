@@ -18,6 +18,7 @@ find_package(catkin REQUIRED COMPONENTS
   trajopt
   tesseract_planning
   pick_and_place_perception
+  ipa325_wsg50
 )
 
 include_directories(include)
@@ -115,7 +116,7 @@ include_directories(include)
 catkin_package(
 INCLUDE_DIRS include
 #LIBRARIES
-CATKIN_DEPENDS roscpp urdf tf_conversions tesseract_planning
+CATKIN_DEPENDS roscpp urdf tf_conversions tesseract_planning ipa325_wsg50
 #  DEPENDS system_lib
 )
 
@@ -129,6 +130,9 @@ include_directories(
   include
   ${catkin_INCLUDE_DIRS}
 )
+
+add_executable(gripper_interface_node src/gripper_interface_node.cpp)
+target_link_libraries(gripper_interface_node ${catkin_LIBRARIES})
 
 add_executable(sensor_simulator_3d src/sensor_simulator_3d.cpp)
 target_link_libraries(sensor_simulator_3d ${catkin_LIBRARIES})
