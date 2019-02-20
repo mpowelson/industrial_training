@@ -19,6 +19,13 @@
 #include <trajopt/plot_callback.hpp>
 #include <trajopt_utils/logging.hpp>
 
+// Added for the Schunk Gripper
+#include <actionlib/client/simple_action_client.h>
+#include <actionlib/client/terminal_state.h>
+#include <ipa325_wsg50/WSG50HomingAction.h>
+#include <ipa325_wsg50/WSG50GraspPartAction.h>
+#include <ipa325_wsg50/WSG50ReleasePartAction.h>
+
 int main(int argc, char** argv)
 {
   //////////////////////
@@ -30,12 +37,13 @@ int main(int argc, char** argv)
 
   int steps_per_phase;
   std::string world_frame, pick_frame;
-  bool sim_robot, plotting_cb, file_write_cb;
+  bool sim_robot, actuate_gripper, plotting_cb, file_write_cb;
 
   pnh.param<int>("steps_per_phase", steps_per_phase, 10);
   nh.param<std::string>("world_frame", world_frame, "world");
   nh.param<std::string>("pick_frame", pick_frame, "part");
   nh.param<bool>("/pick_and_place_node/sim_robot", sim_robot, true);
+  pnh.param<bool>("actuate_gripper", actuate_gripper, true);
   nh.param<bool>("/pick_and_place_node/plotting", plotting_cb, false);
   nh.param<bool>("/pick_and_place_node/file_write_cb", file_write_cb, false);
 
@@ -192,7 +200,7 @@ int main(int argc, char** argv)
 
     // Set the parameters
     tesseract::tesseract_planning::TrajOptPlannerConfig config(pick_prob);
-    config.params.max_iter = 500;
+    config.params.max_iter = 100;
 
     // Create Plot Callback
     if (plotting_cb)
@@ -282,7 +290,7 @@ int main(int argc, char** argv)
 
     // Set the parameters
     tesseract::tesseract_planning::TrajOptPlannerConfig config_place(place_prob);
-    config_place.params.max_iter = 500;
+    config_place.params.max_iter = 100;
 
     // Create Plot Callback
     if (plotting_cb)
@@ -328,6 +336,36 @@ int main(int argc, char** argv)
       std::cin >> input;
       if (input == 'y')
       {
+          // Put gripper setup here
+
+          // create the action client
+          // true causes the client to spin its own thread
+          actionlib::SimpleActionClient<ipa325_wsg50::WSG50HomingAction> home_ac("WSG50Gripper_Homing", true);
+          actionlib::SimpleActionClient<ipa325_wsg50::WSG50GraspPartAction> grasp_ac("WSG50Gripper_GraspPartAction", true);
+          actionlib::SimpleActionClient<ipa325_wsg50::WSG50ReleasePartAction> release_ac("WSG50Gripper_ReleasePartAction", true);
+          if(actuate_gripper){
+          ROS_INFO("Waiting for action servers to start.");
+          home_ac.waitForServer(); //will wait for infinite time
+          grasp_ac.waitForServer();
+          release_ac.waitForServer();
+
+          ROS_INFO("Homing gripper...");
+          ipa325_wsg50::WSG50HomingGoal home_goal;
+          home_goal.direction = true;   // True is in the out direction
+          home_ac.sendGoal(home_goal);
+          bool finished_before_timeout = home_ac.waitForResult(ros::Duration(10.0));
+
+          if (finished_before_timeout)
+          {
+            actionlib::SimpleClientGoalState state = home_ac.getState();
+            ROS_INFO("Homing finished: %s",state.toString().c_str());
+          }
+          else
+            ROS_INFO("Homing did not finish before the time out.");
+
+          }// End gripper setup here
+
+
         std::cout << "Executing... \n";
 
         // Create action client to send trajectories
@@ -360,6 +398,24 @@ int main(int argc, char** argv)
         if (execution_client.getState() == actionlib::SimpleClientGoalState::SUCCEEDED)
         {
           std::cout << "Pick action succeeded! \n";
+          // Put gripper pick code here
+          if(actuate_gripper){
+              ROS_INFO("Grasping Part...");
+              ipa325_wsg50::WSG50GraspPartGoal grasp_goal;
+              grasp_goal.width = 80;  // Part width in mm
+              grasp_goal.speed = 20;  // Speed in mm/s
+              grasp_ac.sendGoal(grasp_goal);
+              bool finished_before_timeout = grasp_ac.waitForResult(ros::Duration(15.0));
+
+              if (finished_before_timeout)
+              {
+                actionlib::SimpleClientGoalState state = grasp_ac.getState();
+                ROS_INFO("Grasp finished: %s",state.toString().c_str());
+              }
+              else
+                ROS_INFO("Grasp did not finish before the time out.");
+
+         } // End gripper pick code
         }
         else
         {
@@ -388,6 +444,24 @@ int main(int argc, char** argv)
         if (execution_client.getState() == actionlib::SimpleClientGoalState::SUCCEEDED)
         {
           std::cout << "Place action succeeded! \n";
+
+          // Put gripper release code here
+          if(actuate_gripper){
+              ROS_INFO("Releasing Part...");
+              ipa325_wsg50::WSG50ReleasePartGoal release_goal;
+              release_goal.openwidth = 105;
+              release_goal.speed = 50;
+              release_ac.sendGoal(release_goal);
+              bool finished_before_timeout = release_ac.waitForResult(ros::Duration(10.0));
+
+              if (finished_before_timeout)
+              {
+                actionlib::SimpleClientGoalState state = release_ac.getState();
+                ROS_INFO("Release finished: %s",state.toString().c_str());
+              }
+              else
+                ROS_INFO("Release did not finish before the time out.");
+        } // End gripper release code
         }
         else
         {

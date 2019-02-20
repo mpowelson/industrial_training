@@ -71,6 +71,7 @@
     <!-- Launch planner node -->
     <node name="pick_and_place_node" pkg="pick_and_place" type="pick_and_place_node" output="screen">
             <param name="sim_robot" value="$(arg sim_robot)"/>
+            <param name="actuate_gripper" value="$(arg actuate_gripper)"/>
             <param name="plotting" value="$(arg plotting)"/>
             <param name="file_write_cb" value="$(arg file_write_cb)" />
     </node>
