@@ -134,6 +134,9 @@ include_directories(
 add_executable(gripper_interface_node src/gripper_interface_node.cpp)
 target_link_libraries(gripper_interface_node ${catkin_LIBRARIES})
 
+add_executable(gpio_interface_node src/gpio_interface_node.cpp)
+target_link_libraries(gpio_interface_node ${catkin_LIBRARIES})
+
 add_executable(sensor_simulator_3d src/sensor_simulator_3d.cpp)
 target_link_libraries(sensor_simulator_3d ${catkin_LIBRARIES})
 
